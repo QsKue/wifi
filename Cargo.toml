@@ -1,0 +1,37 @@
+[package]
+name = "wifi"
+version = "0.1.0"
+edition = "2024"
+description = "Cross-platform Wi-Fi station control via OS-native APIs (Windows Native WiFi / wlanapi, Linux NetworkManager over D-Bus)"
+license = "MIT"
+repository = "https://github.com/QsKue/wifi"
+readme = "README.md"
+keywords = ["wifi", "wireless", "network", "wlan"]
+categories = ["network-programming", "os::windows-apis"]
+# Keep the AI-maintained docs and operating manual out of the published crate — they're for
+# in-repo development, not crate consumers.
+exclude = ["docs/", "AGENTS.md"]
+
+[dependencies]
+# Async surface, the event channel (tokio::sync::mpsc), and timed waits on OS scan/connect
+# notifications (tokio::time). Network I/O is async on every backend.
+tokio = { version = "1", features = ["sync", "time"] }
+
+# Windows backend — Native WiFi API (wlanapi) via the official `windows` crate.
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.58.0", features = [
+  "Win32_Foundation",
+  "Win32_NetworkManagement_WiFi",
+  "Win32_NetworkManagement_Ndis",
+  "Win32_NetworkManagement_IpHelper",
+  "Win32_Networking_WinSock",
+  "Win32_Security",
+] }
+
+# Linux backend — NetworkManager over D-Bus (org.freedesktop.NetworkManager), enabled with the
+# Linux implementation. Kept out of the dependency graph until then so Linux builds stay lean.
+# [target.'cfg(target_os = "linux")'.dependencies]
+# zbus = { version = "4" }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync"] }
