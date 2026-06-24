@@ -18,6 +18,7 @@
 //! output buffers are each paired with `WlanFreeMemory`. The client handle is documented as usable
 //! from any thread, so it is wrapped to make the backend `Send`/`Sync`.
 
+mod connectivity;
 mod conv;
 mod ipconfig;
 mod profile;
@@ -31,6 +32,7 @@ use std::ptr;
 use std::sync::{mpsc, Mutex};
 use std::time::Duration;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
+use windows::Foundation::EventRegistrationToken;
 use windows::Win32::Foundation::{BOOL, HANDLE};
 use windows::Win32::NetworkManagement::WiFi::*;
 use windows::core::{GUID, HSTRING, PCWSTR, PWSTR};
@@ -42,17 +44,23 @@ unsafe impl Send for Handle {}
 unsafe impl Sync for Handle {}
 
 /// A live event subscription: its own dedicated `wlanapi` handle plus the boxed sender handed to
-/// the OS callback as context. Held by the backend; dropping it closes the handle (which stops all
-/// callbacks) and then frees the sender. Kept separate from the main handle so `scan`'s temporary
-/// notification registration never clobbers the subscription.
+/// the OS callback as context, and the WinRT connectivity-change registration token (when that
+/// best-effort registration succeeded). Held by the backend; dropping it stops every source and
+/// frees the sender. Kept separate from the main handle so `scan`'s temporary notification
+/// registration never clobbers the subscription.
 struct EventReg {
     handle: HANDLE,
     sender: *mut UnboundedSender<WifiEvent>,
+    net_token: Option<EventRegistrationToken>,
 }
 unsafe impl Send for EventReg {}
 
 impl Drop for EventReg {
     fn drop(&mut self) {
+        // Remove the WinRT connectivity handler first; its captured sender clone is released here.
+        if let Some(token) = self.net_token.take() {
+            connectivity::remove_status_changed(token);
+        }
         unsafe {
             // Closing the handle tears down its notification registration, so no further callback
             // can fire; only then is it safe to free the sender the callback referenced.
@@ -362,6 +370,10 @@ impl WifiBackend for WindowsWifi {
         ipconfig::read_ip_config(&guid)
     }
 
+    async fn connectivity(&self) -> Result<Connectivity> {
+        connectivity::current()
+    }
+
     async fn saved_networks(&self) -> Result<Vec<SavedNetwork>> {
         let guid = self.primary_guid()?;
         let mut list_ptr: *mut WLAN_PROFILE_INFO_LIST = ptr::null_mut();
@@ -420,6 +432,14 @@ impl WifiBackend for WindowsWifi {
         })?;
 
         let (tx, rx) = unbounded_channel::<WifiEvent>();
+
+        // Emit the current connectivity immediately so a new subscriber sees it without waiting for
+        // the first change; the WinRT handler below gets its own clone for subsequent updates.
+        let net_tx = tx.clone();
+        if let Ok(c) = connectivity::current() {
+            let _ = tx.send(WifiEvent::Connectivity(c));
+        }
+
         let sender = Box::into_raw(Box::new(tx));
         let reg = unsafe {
             WlanRegisterNotification(
@@ -440,9 +460,18 @@ impl WifiBackend for WindowsWifi {
             return Err(e);
         }
 
+        // Push OS internet-reachability changes onto the same stream. Best-effort: if the WinRT
+        // registration fails, Wi-Fi link events still flow and `net_token` is simply `None`.
+        let net_token =
+            connectivity::register_status_changed(move |c| {
+                let _ = net_tx.send(WifiEvent::Connectivity(c));
+            })
+            .ok();
+
         // Storing the new reg drops any previous one (closing its handle, freeing its sender), so a
         // re-subscribe cleanly replaces the old stream. A poisoned lock can't lose the reg.
-        *self.events.lock().unwrap_or_else(|p| p.into_inner()) = Some(EventReg { handle, sender });
+        *self.events.lock().unwrap_or_else(|p| p.into_inner()) =
+            Some(EventReg { handle, sender, net_token });
         Ok(rx)
     }
 }

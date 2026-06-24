@@ -5,7 +5,7 @@ crate root (`pub use types::*`).
 
 ## What belongs here
 - Public value types: `Network`, `Interface`, `ConnectionState`, `ConnectionStatus`, `IpConfig`,
-  `SavedNetwork`, `Security`, `Credentials`, `ConnectRequest`, `WifiEvent`.
+  `SavedNetwork`, `Security`, `Credentials`, `ConnectRequest`, `Connectivity`, `WifiEvent`.
 - The error type `WifiError` + `Result<T>` alias.
 - Small, pure conversions/normalization helpers that are platform-independent.
 

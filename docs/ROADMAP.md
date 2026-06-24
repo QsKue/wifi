@@ -57,6 +57,18 @@ Deferred (not blockers): per-BSS `bssid`/`frequency_mhz` (needs `WlanGetNetworkB
 - Done (2026-06-23): `connect()` awaits `connection_complete` / security `connection_attempt_fail`
   and surfaces `AuthFailed` instead of returning on initiate (see Phase 1).
 
+## Phase 3.5 — Internet reachability — [done] (2026-06-23)
+- Backend-neutral `Connectivity` (`Offline` / `LocalOnly` / `CaptivePortal` / `Online`): the OS's
+  own internet verdict, distinct from link state. Exposed as `connectivity()` (one-shot) and
+  `WifiEvent::Connectivity` on the `subscribe` stream.
+- Windows: WinRT `NetworkInformation` (NCSI) — `GetInternetConnectionProfile().GetNetworkConnectivity
+  Level()` mapped onto `Connectivity`; live pushes via `NetworkStatusChanged` folded onto the same
+  event channel (best-effort — Wi-Fi events still flow if it fails to register). An implicit
+  process-wide MTA (`CoIncrementMTAUsage`) lets the agile WinRT calls run from any runtime thread.
+- **Verified live:** getter returns `Online`; a driven disconnect→reconnect produced
+  `Connectivity(Offline)` then `Connectivity(LocalOnly)` (probe pending) settling to `Online`.
+  `CaptivePortal` is the same code path (no portal network on hand to exercise).
+
 ## IP details (`ip_config`) — [done] (2026-06-23)
 - `ip_config()` on the `WifiBackend` trait (not a separate trait) returns `IpConfig { mac, ipv4,
   ipv6, gateway, dns }`. Windows reads it via the IP Helper API (`GetAdaptersAddresses`,

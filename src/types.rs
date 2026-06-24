@@ -129,6 +129,23 @@ pub struct SavedNetwork {
     pub priority: Option<i32>,
 }
 
+/// Internet reachability of the active connection, as the OS itself determines it (Windows NCSI /
+/// NetworkManager connectivity check). Distinct from [`ConnectionState`]: a link can be `Connected`
+/// yet `Offline` (associated to an AP with no working internet, e.g. a hotspot with no upstream) or
+/// `CaptivePortal` (a login page is intercepting traffic). The OS does the probing; nothing here
+/// reaches out to the network itself.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Connectivity {
+    /// No internet path (may still be associated to an AP with local-only access).
+    Offline,
+    /// Connected, but the OS sees only the local network — no internet.
+    LocalOnly,
+    /// Internet present but a captive portal (login page) is intercepting traffic.
+    CaptivePortal,
+    /// Full internet reachability.
+    Online,
+}
+
 /// Live notifications from the active interface, delivered over the channel returned by
 /// [`crate::WifiBackend::subscribe`].
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -139,6 +156,8 @@ pub enum WifiEvent {
     StateChanged(ConnectionState),
     /// Link quality changed (0–100).
     SignalChanged(u8),
+    /// Internet reachability changed (online / offline / local-only / captive portal).
+    Connectivity(Connectivity),
 }
 
 /// Errors surfaced by the crate. Backend-neutral; platform detail rides in `OsApi`.

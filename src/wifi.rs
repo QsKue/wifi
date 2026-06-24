@@ -53,4 +53,10 @@ impl WiFi {
     pub fn subscribe(&self) -> Result<tokio::sync::mpsc::UnboundedReceiver<WifiEvent>> {
         self.backend.subscribe()
     }
+
+    /// The OS's current internet-reachability verdict (online / offline / local-only / captive
+    /// portal). Live changes also arrive as [`WifiEvent::Connectivity`] on the `subscribe` stream.
+    pub async fn connectivity(&self) -> Result<Connectivity> {
+        self.backend.connectivity().await
+    }
 }

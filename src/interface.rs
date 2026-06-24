@@ -53,4 +53,13 @@ pub trait WifiBackend {
     fn subscribe(&self) -> Result<tokio::sync::mpsc::UnboundedReceiver<WifiEvent>> {
         Err(WifiError::Unimplemented("subscribe"))
     }
+
+    // Internet reachability.
+
+    /// The OS's current internet-reachability verdict for the active connection. Cheap to call; the
+    /// OS keeps this state continuously, so this only reads it. Live changes also arrive as
+    /// [`WifiEvent::Connectivity`] on the `subscribe` stream.
+    async fn connectivity(&self) -> Result<Connectivity> {
+        Err(WifiError::Unimplemented("connectivity"))
+    }
 }

@@ -1,7 +1,8 @@
 # Platform — Windows
 
 Source: `src/platform/windows/` (`mod.rs` backend, `conv.rs` type mapping, `profile.rs` connect
-XML, `ipconfig.rs` IP-Helper details). The `WindowsWifi` backend: the **Native WiFi API** (`wlanapi`, in
+XML, `ipconfig.rs` IP-Helper details, `connectivity.rs` WinRT internet-reachability). The
+`WindowsWifi` backend: the **Native WiFi API** (`wlanapi`, in
 `windows::Win32::NetworkManagement::WiFi`) via the official `windows` crate. The active target;
 core station ops are implemented and verified on real hardware.
 
@@ -44,6 +45,15 @@ core station ops are implemented and verified on real hardware.
   `ipconfig.rs`), matched to the wifi interface by GUID string. It's IP-layer (MAC/IP/gateway/DNS),
   queried live each call, not link-layer like the rest. Buffer is a `Vec<u64>` for alignment;
   `SOCKADDR` is rendered via `std::net::Ipv4Addr`/`Ipv6Addr`.
+- `connectivity` is a **third** API again — WinRT `NetworkInformation` (NCSI), in `connectivity.rs`.
+  It needs a live COM apartment, so `ensure_mta` calls `CoIncrementMTAUsage` once (cookie leaked on
+  purpose) to keep an implicit process-wide MTA for the agile WinRT calls. `WifiEvent::Connectivity`
+  rides the **same** `subscribe` channel: `subscribe` registers a `NetworkStatusChanged` handler
+  (holding its own sender clone) and stores its `EventRegistrationToken` in `EventReg`, removed on
+  drop before the wlanapi teardown. The WinRT registration is best-effort — a failure leaves Wi-Fi
+  events flowing with `net_token = None`. `NetworkConnectivityLevel` is a WinRT enum (named consts,
+  not Rust variants), matched by equality. Right after reconnect the OS reports `LocalOnly` until
+  its probe finishes, then `Online`.
 - `WlanConnect` needs a profile to exist first (`WlanSetProfile`) — connect is two calls, not one.
   `connect` then **awaits** the outcome: it registers for the terminal connection notification on a
   *dedicated* handle (registered before `WlanConnect` so a fast result isn't missed), returning `Ok`
