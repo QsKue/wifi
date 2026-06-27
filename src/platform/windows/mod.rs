@@ -18,7 +18,7 @@
 //! output buffers are each paired with `WlanFreeMemory`. The client handle is documented as usable
 //! from any thread, so it is wrapped to make the backend `Send`/`Sync`.
 
-mod connectivity;
+pub(crate) mod connectivity;
 mod conv;
 mod ipconfig;
 mod profile;

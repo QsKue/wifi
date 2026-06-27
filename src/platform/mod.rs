@@ -6,6 +6,9 @@
 mod windows;
 #[cfg(windows)]
 pub use windows::WindowsWifi as Backend;
+/// Sync internet-reachability probe (no `WiFi` instance / async runtime needed).
+#[cfg(windows)]
+pub(crate) use windows::connectivity::current as connectivity_current;
 
 #[cfg(target_os = "linux")]
 mod linux;

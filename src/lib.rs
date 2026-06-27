@@ -15,3 +15,18 @@ mod wifi;
 pub use interface::WifiBackend;
 pub use types::*;
 pub use wifi::WiFi;
+
+/// The OS's current internet-reachability verdict — **synchronous**, no [`WiFi`] instance or async
+/// runtime needed. Reads the cached NCSI level on Windows (the signal behind the tray "No internet"
+/// indicator); other targets report [`Connectivity::Offline`] (no sync probe available). Intended
+/// for cheap, frequent gating, e.g. "don't start an update with no internet".
+pub fn connectivity() -> Result<Connectivity> {
+    #[cfg(windows)]
+    {
+        platform::connectivity_current()
+    }
+    #[cfg(not(windows))]
+    {
+        Ok(Connectivity::Offline)
+    }
+}
