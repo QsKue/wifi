@@ -15,8 +15,19 @@ pub trait WifiBackend {
     /// Enumerate the machine's wireless interfaces.
     async fn interfaces(&self) -> Result<Vec<Interface>>;
 
-    /// Trigger a scan and return the visible networks on the active interface.
+    /// Trigger a scan and return the visible networks on the active interface. Blocks until the
+    /// scan completes (or a short timeout), so prefer [`available_networks`] for the first paint and
+    /// use this to refresh.
     async fn scan(&self) -> Result<Vec<Network>>;
+
+    /// The OS's *cached* list of currently-visible networks — returns immediately, without forcing a
+    /// fresh scan (what the system Wi-Fi flyout shows the instant it opens). Pair with [`scan`], or a
+    /// [`WifiEvent::ScanComplete`] from [`subscribe`], to refresh it.
+    ///
+    /// [`subscribe`]: WifiBackend::subscribe
+    async fn available_networks(&self) -> Result<Vec<Network>> {
+        Err(WifiError::Unimplemented("available_networks"))
+    }
 
     /// Join a network. Creates/updates a profile as the OS requires.
     async fn connect(&self, req: &ConnectRequest) -> Result<()>;

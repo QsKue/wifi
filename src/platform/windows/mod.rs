@@ -224,7 +224,12 @@ impl WifiBackend for WindowsWifi {
         }
 
         check("WlanScan", scan_ret)?;
-        self.available_networks(&guid)
+        self.read_available_networks(&guid)
+    }
+
+    async fn available_networks(&self) -> Result<Vec<Network>> {
+        let guid = self.primary_guid()?;
+        self.read_available_networks(&guid)
     }
 
     async fn connect(&self, req: &ConnectRequest) -> Result<()> {
@@ -480,7 +485,7 @@ impl WindowsWifi {
     /// Read the current available-network list for `guid` and fold it into neutral `Network`s,
     /// de-duplicating by SSID and keeping the strongest signal (the list reports one entry per
     /// security variant, which would otherwise surface the same SSID several times).
-    fn available_networks(&self, guid: &GUID) -> Result<Vec<Network>> {
+    fn read_available_networks(&self, guid: &GUID) -> Result<Vec<Network>> {
         let mut list_ptr: *mut WLAN_AVAILABLE_NETWORK_LIST = ptr::null_mut();
         let ret =
             unsafe { WlanGetAvailableNetworkList(self.h(), guid, 0, None, &mut list_ptr) };

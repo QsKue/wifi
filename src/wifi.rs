@@ -24,6 +24,12 @@ impl WiFi {
         self.backend.scan().await
     }
 
+    /// The OS's cached list of visible networks — returns immediately, no fresh scan forced. See
+    /// [`WifiBackend::available_networks`].
+    pub async fn available_networks(&self) -> Result<Vec<Network>> {
+        self.backend.available_networks().await
+    }
+
     pub async fn connect(&self, req: &ConnectRequest) -> Result<()> {
         self.backend.connect(req).await
     }
