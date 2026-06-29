@@ -83,4 +83,18 @@ pub trait WifiBackend {
     async fn connectivity(&self) -> Result<Connectivity> {
         Err(WifiError::Unimplemented("connectivity"))
     }
+
+    // Radio power.
+
+    /// Whether the Wi-Fi radio is currently powered on. Backends without radio control report
+    /// `Unimplemented`.
+    async fn is_enabled(&self) -> Result<bool> {
+        Err(WifiError::Unimplemented("is_enabled"))
+    }
+
+    /// Power the Wi-Fi radio on or off — the switch behind the OS "Wi-Fi off" / airplane toggle.
+    /// Off stops all scanning and association at the hardware level (no emissions).
+    async fn set_enabled(&self, _on: bool) -> Result<()> {
+        Err(WifiError::Unimplemented("set_enabled"))
+    }
 }

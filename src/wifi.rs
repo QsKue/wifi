@@ -73,4 +73,15 @@ impl WiFi {
     pub async fn connectivity(&self) -> Result<Connectivity> {
         self.backend.connectivity().await
     }
+
+    /// Whether the Wi-Fi radio is powered on (see [`WifiBackend::is_enabled`]).
+    pub async fn is_enabled(&self) -> Result<bool> {
+        self.backend.is_enabled().await
+    }
+
+    /// Power the Wi-Fi radio on or off — the OS "Wi-Fi off" / airplane switch
+    /// (see [`WifiBackend::set_enabled`]).
+    pub async fn set_enabled(&self, on: bool) -> Result<()> {
+        self.backend.set_enabled(on).await
+    }
 }

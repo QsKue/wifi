@@ -22,6 +22,7 @@ pub(crate) mod connectivity;
 mod conv;
 mod ipconfig;
 mod profile;
+mod radio;
 
 use crate::interface::WifiBackend;
 use crate::types::*;
@@ -485,6 +486,14 @@ impl WifiBackend for WindowsWifi {
         *self.events.lock().unwrap_or_else(|p| p.into_inner()) =
             Some(EventReg { handle, sender, net_token });
         Ok(rx)
+    }
+
+    async fn is_enabled(&self) -> Result<bool> {
+        radio::is_enabled()
+    }
+
+    async fn set_enabled(&self, on: bool) -> Result<()> {
+        radio::set_enabled(on)
     }
 }
 
