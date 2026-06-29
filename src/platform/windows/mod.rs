@@ -232,6 +232,13 @@ impl WifiBackend for WindowsWifi {
         self.read_available_networks(&guid)
     }
 
+    async fn request_scan(&self) -> Result<()> {
+        let guid = self.primary_guid()?;
+        // Fire-and-forget: no notification registration, no wait. The OS delivers scan-complete to
+        // any handle registered via `subscribe`, where it surfaces as `WifiEvent::ScanComplete`.
+        check("WlanScan", unsafe { WlanScan(self.h(), &guid, None, None, None) })
+    }
+
     async fn connect(&self, req: &ConnectRequest) -> Result<()> {
         if matches!(req.credentials, Credentials::Enterprise { .. }) {
             return Err(WifiError::Unimplemented("windows: enterprise connect"));

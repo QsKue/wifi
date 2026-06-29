@@ -29,6 +29,16 @@ pub trait WifiBackend {
         Err(WifiError::Unimplemented("available_networks"))
     }
 
+    /// Ask the OS to start a scan and return immediately, *without* waiting for it to finish —
+    /// results arrive later as a [`WifiEvent::ScanComplete`] on the [`subscribe`] stream, after
+    /// which [`available_networks`] reflects them. Use this to keep the cache warm cheaply; use
+    /// [`scan`] when you need to block until fresh results are in hand.
+    ///
+    /// [`subscribe`]: WifiBackend::subscribe
+    async fn request_scan(&self) -> Result<()> {
+        Err(WifiError::Unimplemented("request_scan"))
+    }
+
     /// Join a network. Creates/updates a profile as the OS requires.
     async fn connect(&self, req: &ConnectRequest) -> Result<()>;
 

@@ -30,6 +30,14 @@ impl WiFi {
         self.backend.available_networks().await
     }
 
+    /// Trigger a scan without waiting — results land via the [`subscribe`] stream's `ScanComplete`.
+    /// See [`WifiBackend::request_scan`].
+    ///
+    /// [`subscribe`]: WiFi::subscribe
+    pub async fn request_scan(&self) -> Result<()> {
+        self.backend.request_scan().await
+    }
+
     pub async fn connect(&self, req: &ConnectRequest) -> Result<()> {
         self.backend.connect(req).await
     }
